@@ -17861,13 +17861,9 @@ writer.write(
                 graphsAccessible? "graphs" : 
                 isLoggedIn? "no" : loginHref);
             //only title, summary, institution, id are always accessible if !listPrivateDatasets
-            String tTitle = edd.title();
-            plainTitleCol.add(tTitle);
-            String ttTitle = String2.noLongLines(tTitle, EDStatic.TITLE_DOT_LENGTH, ""); //insert newlines
-            ttTitle = XML.encodeAsHTML(ttTitle); //newlines intact
-            ttTitle = String2.replaceAll(ttTitle, "\n", "<br>");
-            titleCol.add(ttTitle);
-
+            LocalizedString lTitle = edd.localizedTitle(language);
+            plainTitleCol.add(lTitle.text());
+            titleCol.add(lTitle.htmlTag(language, "span"));
             summaryCol.add("&nbsp;&nbsp;&nbsp;" + EDStatic.htmlTooltipImage(language, loggedInAs, 
                 "<div class=\"standard_max_width\">" + XML.encodeAsPreHTML(edd.extendedSummary()) +
                 "</div>"));
@@ -17937,7 +17933,7 @@ writer.write(
         table.removeColumn(sortOn); //in any case, remove the plainTitle column
         return table;
     }
-
+    
     /**
      * This writes the plain (non-html) table as a plainFileType response.
      *

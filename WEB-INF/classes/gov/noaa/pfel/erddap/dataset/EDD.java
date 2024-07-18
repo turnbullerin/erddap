@@ -57,6 +57,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -355,6 +357,13 @@ public abstract class EDD {
     /** These are created as needed (in the constructor) from combinedGlobalAttributes. */
     protected String id, title, summary, extendedSummaryPartB, institution, 
         infoUrl, cdmDataType;
+    
+    /** These are created from combinedGlobalAttributes. */
+    protected LocalizedString[] localizedTitles, localizedSummaries;
+    
+    /** These are an ordered list of locale suffixes (one list for each language). */
+    protected ArrayList<ArrayList<LocalizationSuffix>> localePriorityList;
+    
     /** These are created as needed (in the constructor) by accessibleVia...(). 
       See also EDStatic.accessibleViaNC4. */
     protected String 
@@ -2061,7 +2070,65 @@ public abstract class EDD {
             title = combinedGlobalAttributes.getString("title");
         return title;
     }
-
+    
+    /**
+     * The localized title is a descriptive title for this dataset, in the 
+     * language that most closely matches the user's current language. 
+     * 
+     * @param language The index of the user's language in TranslateMessages.languageCodeList.
+     * @return The title and its locale as a LocalizedString object.
+     */
+    public LocalizedString localizedTitle(int language) {
+        if (localizedTitles == null) {
+            localizedTitles = buildLocalizedAttribute("title");
+        }
+        return localizedTitles[language];
+    }
+    
+    /**
+     * Given an attribute name, constructs an array of LocalizedString objects
+     * equal to the number of language tags in TranslateMessages.languageCodeList,
+     * with each entry corresponding to the LocalizedString object that is the 
+     * best available match for the given language tag.
+     * 
+     * @param attributeName The attribute name to match on.
+     * @return An array of LocalizedString objects, each corresponding to the 
+     * relevant language tag in TranslateMessages.languageCodeList.
+     */
+    protected LocalizedString[] buildLocalizedAttribute(String attributeName) {
+        int nLanguages = TranslateMessages.languageCodeList.length;
+        LocalizedString localizedAttributes[] = new LocalizedString[nLanguages];
+        ArrayList<ArrayList<LocalizationSuffix>> suffixes = localizationPriorityList();
+        for (int k = 0; k < nLanguages; k++) {
+            ArrayList<LocalizationSuffix> languageSuffixes = suffixes.get(k);
+            for (int j = 0; j < nLanguages; j++) {
+                LocalizationSuffix localeSuffix = languageSuffixes.get(j);
+                String localizedValue = combinedGlobalAttributes.getString(attributeName + localeSuffix.suffix());
+                if (localizedValue != null) {
+                    localizedAttributes[k] = new LocalizedString(localizedValue, localeSuffix.locale());
+                    break;
+                }
+            }
+        }
+        return localizedAttributes;
+    }
+    
+    /**
+     * Cached version of parseLocalizations() for an ERDDAP dataset that uses
+     *  the global attribute "localizations".
+     * 
+     * @return An ArrayList with one entry per languageCode in TranslateMessages.languageCodeList,
+     * in the same order as that list. Each entry in the ArrayList is itself an ArrayList
+     * which contain a prioritized list of LocalizationSuffix objects from most relevant to
+     * least.
+     */
+    protected ArrayList<ArrayList<LocalizationSuffix>> localizationPriorityList() {
+        if (localePriorityList == null) {
+            localePriorityList = LocalizationSuffix.parseLocalizations(combinedGlobalAttributes.getString("localizations"));
+        }
+        return localePriorityList;
+    }
+    
     /** 
      * The summary is a longer description for this dataset.  
      * It is usually &lt; 500 characters long.
@@ -2076,6 +2143,21 @@ public abstract class EDD {
         return summary; 
     }
 
+    
+    /**
+     * The localized summary is a longer description for this dataset, in the 
+     * language that most closely matches the user's current language. 
+     * 
+     * @param language The index of the user's language in TranslateMessages.languageCodeList.
+     * @return The summary and its locale as a LocalizedString object.
+     */
+    public LocalizedString localizedSummary(int language) {
+        if (localizedSummaries == null) {
+            localizedSummaries = buildLocalizedAttribute("summary");
+        }
+        return localizedSummaries[language];
+    }
+    
     /** 
      * The extendedSummary is summary() plus a list of variable names, long names, and units.
      *
@@ -2135,7 +2217,7 @@ public abstract class EDD {
         return extendedSummaryPartB.length() == 0? tSummary :
             tSummary + extendedSummaryPartB; 
     }
-
+    
     /** 
      * The institution identifies the source of the data which should receive
      * credit for the data, suitable for "Data courtesy of " in the legend on a graph,
@@ -3278,8 +3360,7 @@ public abstract class EDD {
                 "<div class=\"standard_max_width\">" + XML.encodeAsPreHTML(tLicense) +
                 "</div>") +
             "\n";
-        String encTitle = XML.encodeAsHTML(String2.noLongLines(title(), 80, ""));
-        encTitle = String2.replaceAll(encTitle, "\n", "<br>");
+        String encTitle = localizedTitle(language).htmlTag(language, 80, "");
         writer.write(
             //"<p><strong>" + type + " Dataset:</strong>\n" +
             "<table class=\"compact nowrap\">\n" +
