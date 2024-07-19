@@ -5075,7 +5075,7 @@ accessibleViaNC4 = ".nc4 is not yet supported.";
         HtmlWidgets widgets = new HtmlWidgets();
         s = String2.replaceAll(s, "&language;", String2.isSomething(endOfRequest)? //isSomething should never be false, but it's safer this way
             widgets.select("language", "Select the language for all web pages in ERDDAP.",
-                1, TranslateMessages.languageList, TranslateMessages.languageCodeList, language, 
+                1, TranslateMessages.languageList, TranslateMessages.languageCodeList, TranslateMessages.languageCodeList, language, 
                 "onchange=\"window.location.href='" + baseUrl(loggedInAs) + "/" + warName + "/' + " +
                     "(this.selectedIndex == 0? '' : this[this.selectedIndex].value + '/') + '" +  //e.g., de
                     XML.encodeAsHTMLAttribute(endOfRequest /* + questionQuery(queryString) */ ) + "';\"",  //query string is already percent encoded. 
